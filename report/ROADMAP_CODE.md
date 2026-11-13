@@ -11,7 +11,7 @@
 
 - [x] **1.1. Базовый интерфейс выборки**
   - Определение формата границ поиска `bounds` (список кортежей `[(low, high), ...]`).
-- [ ] **1.2. Случайная выборка (Random Sampling)**
+- [x] **1.2. Случайная выборка (Random Sampling)**
   - Реализация `random_sampling(bounds, n_samples, seed=None)`.
 - [x] **1.3. Выборка по латинскому гиперкубу (Latin Hypercube Sampling, LHS)**
   - Реализация `latin_hypercube_sampling(bounds, n_samples, seed=None)`:
