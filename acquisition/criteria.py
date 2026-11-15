@@ -35,6 +35,19 @@ def probability_of_improvement(X, gp):
     probs[mask] = norm.cdf(z)
     return probs
 
+def expected_improvement(X, gp):
+    """исследование на основе ожидаемого улучшения
+    возвращает полезность точек (m,) для X (m, n)"""
+
+    y_min = np.min(gp.y)
+    exp_vals, stds = gp.predict(X)
+
+    # Считаем z только там, где есть неопределенность, в остальных точках вероятность 0.0
+    mask = stds > 1e-9
+    exp_imprs = np.zeros_like(stds)
+    z = (y_min - exp_vals[mask]) / stds[mask]
+    exp_imprs[mask] = (y_min - exp_vals[mask]) * norm.cdf(z) + stds[mask] * norm.pdf(z)
+    return exp_imprs
 
 
 def propose_candidate(acq_func, gp, bounds, n_candidates=1000, seed=None):
@@ -61,6 +74,7 @@ if __name__ == "__main__":
     x_explore = propose_candidate(pure_exploration, gp, bounds, seed=42)
     x_lcb = propose_candidate(lower_confidence_bound, gp, bounds, seed=42)
     x_pi = propose_candidate(probability_of_improvement, gp, bounds, seed=42)
+    x_ei = propose_candidate(expected_improvement, gp, bounds, seed=42)
 
     X_plot = np.linspace(0.0, 5.0, 200)[:, None]
     mu, std = gp.predict(X_plot)
@@ -68,8 +82,9 @@ if __name__ == "__main__":
     u_explore = pure_exploration(X_plot, gp)
     u_lcb = lower_confidence_bound(X_plot, gp)
     u_pi = probability_of_improvement(X_plot, gp)
+    u_ei = expected_improvement(X_plot, gp)
 
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(8, 8), sharex=True)
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(8, 10), sharex=True)
 
     ax1.plot(X_plot, np.cos(X_plot), "k--", label="f(x)")
     ax1.plot(X_plot, mu, "b-", label="μ(x)")
@@ -88,6 +103,10 @@ if __name__ == "__main__":
     ax3.plot(X_plot, u_pi, "r-", label="Prob of Improvement (PI)")
     ax3.axvline(x_pi[0], color="r", linestyle="--", label=f"Next PI: {x_pi[0]:.2f}")
     ax3.legend()
+
+    ax4.plot(X_plot, u_ei, "purple", label="Expected Improvement (EI)")
+    ax4.axvline(x_ei[0], color="purple", linestyle="--", label=f"Next EI: {x_ei[0]:.2f}")
+    ax4.legend()
 
     plt.tight_layout()
     plt.show()
