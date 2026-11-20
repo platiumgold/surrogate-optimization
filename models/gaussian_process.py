@@ -16,12 +16,16 @@ class GaussianProcess:
         """Обучает ГП на точках X формы (N, d) и значениях y формы (N,)."""
         self.X = X
         self.y = y
+        self.y_mean = np.mean(y)
+        self.y_std = np.std(y) if np.std(y) > 1e-9 else 1.0
+        y_norm = (self.y - self.y_mean) / self.y_std
+
         self.K_xx = cov_matrix(self.X, self.X, self.k) + (self.noise_var) * np.eye(len(X))
         # K_xx = L @ L^T  где L нижнетреугольная
         self.L = cholesky(self.K_xx, lower=True)
         m_X = np.array(expected_value(X, self.m))
-        # (L @ L^T) @ theta = (y-m) -> L @ v = (y-m) ; v = L^T @ theta
-        v = solve_triangular(self.L, self.y - m_X, lower=True)
+        # (L @ L^T) @ theta = (y_norm - m) -> L @ v = (y_norm - m) ; v = L^T @ theta
+        v = solve_triangular(self.L, y_norm - m_X, lower=True)
         # L^T @ theta = v
         self.theta = solve_triangular(self.L.T, v, lower=False)
 
@@ -42,7 +46,9 @@ class GaussianProcess:
             var = np.maximum(var, 0.0)
             stds.append(np.sqrt(var))
 
-        return np.array(predictions).ravel(), np.array(stds).ravel()
+        mu = np.array(predictions).ravel() * self.y_std + self.y_mean
+        std = np.array(stds).ravel() * self.y_std
+        return mu, std
 
 
 class SqExpKernel:
