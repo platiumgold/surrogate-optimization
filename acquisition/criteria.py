@@ -109,5 +109,6 @@ if __name__ == "__main__":
     ax4.legend()
 
     plt.tight_layout()
+    plt.savefig("report/images/fig3_acquisition_criteria.png", dpi=300)
     plt.show()
     

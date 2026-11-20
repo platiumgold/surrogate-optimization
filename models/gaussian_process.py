@@ -64,4 +64,7 @@ if __name__ == "__main__":
     plt.scatter(X_train, y_train, color="k", zorder=3, label="Обучающие точки")
     plt.legend()
     plt.tight_layout()
+    import os
+    os.makedirs("report/images", exist_ok=True)
+    plt.savefig("report/images/fig2_gp_approximation.png", dpi=300)
     plt.show()
