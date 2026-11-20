@@ -1,5 +1,6 @@
 import math as m
 import numpy as np
+from scipy.linalg import cholesky, solve_triangular
 def expected_value(X, m): return [m(x) for x in X]
 def cov_matrix(X, X1, k): return np.array([[k(x, x1) for x1 in X1] for x in X])
 
@@ -16,19 +17,25 @@ class GaussianProcess:
         self.X = X
         self.y = y
         self.K_xx = cov_matrix(self.X, self.X, self.k) + (self.noise_var) * np.eye(len(X))
-        self.K_xx_inv = np.linalg.inv(self.K_xx)
+        # K_xx = L @ L^T  где L нижнетреугольная
+        self.L = cholesky(self.K_xx, lower=True)
         m_X = np.array(expected_value(X, self.m))
-        #коэфт для вычисления прогноза мат ожидания зависит только от заданного X
-        self.theta = self.K_xx_inv @ (self.y - m_X)
+        # (L @ L^T) @ theta = (y-m) -> L @ v = (y-m) ; v = L^T @ theta
+        v = solve_triangular(self.L, self.y - m_X, lower=True)
+        # L^T @ theta = v
+        self.theta = solve_triangular(self.L.T, v, lower=False)
 
     def predict(self, X_star):
         """Возвращает прогноз mu и std для тестовых точек X_star формы (M, d)."""
         predictions = []
         stds = []
         for xs in X_star:
-            cov_X_xs = cov_matrix(self.X, [xs], self.k)
+            cov_X_xs = cov_matrix(self.X, [xs], self.k) # k
             pred = self.m(xs) + self.theta.T @ cov_X_xs
-            var = cov_matrix([xs], [xs], self.k) - cov_X_xs.T @ self.K_xx_inv @ cov_X_xs
+            # var = K_xx - S; S = [ k^T @ (L^T)_inv ] @ [L_inv @ k] = u^T @ u; L @ u = k
+            u = solve_triangular(self.L, cov_X_xs, lower=True)
+            # var = K_xx - u^T @ u
+            var = cov_matrix([xs], [xs], self.k) - np.sum(u**2)
 
             predictions.append(pred)
             #защита от nan
